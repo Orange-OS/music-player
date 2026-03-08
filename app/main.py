@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from .data import db
@@ -20,6 +21,7 @@ def main():
 
     player = Player()
     qt_app = QApplication(sys.argv)
+    qt_app.setWindowIcon(QIcon(str(Path(__file__).resolve().parent / ".." / "assets" / "icons" / "application.png")))
     window = AppWindow(conn, player)
     window.show()
     sys.exit(qt_app.exec_())

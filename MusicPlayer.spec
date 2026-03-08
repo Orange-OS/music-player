@@ -4,8 +4,8 @@
 a = Analysis(
     ['run.py'],
     pathex=[],
-    binaries=[],
-    datas=[('app\\data\\schema.sql', 'app\\data')],
+    binaries=[('third_party/vlc/libvlc.dll', '.'), ('third_party/vlc/libvlccore.dll', '.')],
+    datas=[('assets', 'assets'), ('app/data', 'app/data'), ('third_party/vlc/plugins', 'plugins')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -32,6 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['assets\\icons\\application.ico'],
 )
 coll = COLLECT(
     exe,

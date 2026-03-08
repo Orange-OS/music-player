@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -22,6 +22,7 @@ class AppWindow(QMainWindow):
     def __init__(self, conn, player):
         super().__init__()
         self.setWindowTitle("Music Player")
+        self.setWindowIcon(QIcon(str(Path(__file__).resolve().parent.parent / ".." / "assets" / "icons" / "application.png")))
         self.resize(900, 600)
 
         self._conn = conn
