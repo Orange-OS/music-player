@@ -9,12 +9,15 @@ from PySide6.QtWidgets import (
     QSplitter,
     QFileDialog,
     QMessageBox,
+    QPushButton,
+    QHBoxLayout,
 )
 
 from .search_bar import SearchBar
 from .library_view import LibraryView
 from .playback_controls import PlaybackControls
 from .lyrics_view import LyricsView
+from .title_bar import TitleBar
 from ..core import library, search, lyrics, metadata
 
 
@@ -23,7 +26,39 @@ class AppWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Music Player")
         self.setWindowIcon(QIcon(str(Path(__file__).resolve().parent.parent / ".." / "assets" / "icons" / "application.png")))
-        self.resize(900, 600)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.resize(960, 640)
+        self.setMinimumSize(860, 560)
+        self.setStyleSheet(
+            "QMainWindow {"
+            "  background: #efefef;"
+            "}"
+            "QMenuBar {"
+            "  background: #f7f7f7;"
+            "  border-bottom: 1px solid rgba(0, 0, 0, 0.08);"
+            "  padding: 4px 6px;"
+            "}"
+            "QMenuBar::item {"
+            "  padding: 4px 8px;"
+            "  background: transparent;"
+            "  border-radius: 4px;"
+            "}"
+            "QMenuBar::item:selected {"
+            "  background: rgba(0, 0, 0, 0.06);"
+            "}"
+            "QMenu {"
+            "  background: #ffffff;"
+            "  border: 1px solid rgba(0, 0, 0, 0.10);"
+            "  padding: 4px;"
+            "}"
+            "QMenu::item {"
+            "  padding: 4px 12px;"
+            "}"
+            "QMenu::item:selected {"
+            "  background: rgba(0, 0, 0, 0.06);"
+            "}"
+        )
 
         self._conn = conn
         self._player = player
@@ -31,17 +66,73 @@ class AppWindow(QMainWindow):
         self._current_lyrics_index = -1
         self._current_path = None
         self._cover_cache = {}
+        self._last_query = ""
+        self._cover_debug_shown = False
 
         central = QWidget(self)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(8, 6, 8, 6)
-        layout.setSpacing(6)
+        central.setStyleSheet("background: transparent;")
+        outer_layout = QVBoxLayout(central)
+        outer_layout.setContentsMargins(8, 8, 8, 8)
+        outer_layout.setSpacing(0)
 
-        self._search_bar = SearchBar(central, self._on_search)
-        layout.addWidget(self._search_bar)
+        inner = QWidget(central)
+        inner.setAttribute(Qt.WA_StyledBackground, True)
+        inner.setStyleSheet(
+            "background: #f3f3f3;"
+            "border: 1px solid rgba(0, 0, 0, 0.08);"
+            "border-radius: 8px;"
+        )
+        layout = QVBoxLayout(inner)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(8)
+        outer_layout.addWidget(inner)
 
-        splitter = QSplitter(Qt.Horizontal, central)
-        self._library = LibraryView(splitter, self._on_activate)
+        self._title_bar = TitleBar(inner)
+        layout.addWidget(self._title_bar)
+
+        search_row = QWidget(inner)
+        search_layout = QHBoxLayout(search_row)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        search_layout.setSpacing(8)
+
+        self._search_bar = SearchBar(search_row, self._on_search)
+        self._search_bar.setStyleSheet(
+            "background: #f7f7f7;"
+            "border: 1px solid rgba(0, 0, 0, 0.08);"
+            "border-radius: 6px;"
+            "padding: 4px;"
+        )
+        search_layout.addWidget(self._search_bar, 1)
+
+        self._scan_button = QPushButton("扫描", search_row)
+        self._scan_button.setFixedHeight(30)
+        self._scan_button.clicked.connect(self._scan_folder)
+        self._scan_button.setStyleSheet(
+            "QPushButton {"
+            "  background: #f7f7f7;"
+            "  border: 1px solid rgba(0, 0, 0, 0.08);"
+            "  border-radius: 6px;"
+            "  padding: 0 12px;"
+            "}"
+            "QPushButton:hover {"
+            "  background: rgba(0, 0, 0, 0.04);"
+            "}"
+            "QPushButton:pressed {"
+            "  background: rgba(0, 0, 0, 0.08);"
+            "}"
+        )
+        search_layout.addWidget(self._scan_button)
+
+        layout.addWidget(search_row)
+
+        splitter = QSplitter(Qt.Horizontal, inner)
+        splitter.setStyleSheet(
+            "QSplitter::handle {"
+            "  background: rgba(0, 0, 0, 0.06);"
+            "  width: 1px;"
+            "}"
+        )
+        self._library = LibraryView(splitter, self._on_activate, self._on_remove_selected)
         self._lyrics = LyricsView(splitter)
         splitter.addWidget(self._library)
         splitter.addWidget(self._lyrics)
@@ -50,24 +141,21 @@ class AppWindow(QMainWindow):
         layout.addWidget(splitter, 1)
 
         self._controls = PlaybackControls(
-            central,
+            inner,
             on_toggle=self._on_toggle_playback,
             on_stop=self._on_stop,
             on_seek=self._on_seek,
             on_volume=self._on_volume,
         )
+        self._controls.setStyleSheet(
+            "background: #f7f7f7;"
+            "border: 1px solid rgba(0, 0, 0, 0.08);"
+            "border-radius: 6px;"
+            "padding: 4px;"
+        )
         layout.addWidget(self._controls)
 
         self.setCentralWidget(central)
-
-        file_menu = self.menuBar().addMenu("文件")
-        scan_action = QAction("扫描文件夹", self)
-        scan_action.triggered.connect(self._scan_folder)
-        file_menu.addAction(scan_action)
-        file_menu.addSeparator()
-        exit_action = QAction("退出", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
 
         toggle_action = QAction(self)
         toggle_action.setShortcut(QKeySequence(Qt.Key_Space))
@@ -113,6 +201,7 @@ class AppWindow(QMainWindow):
         self._library.set_tracks(rows)
 
     def _on_search(self, query: str):
+        self._last_query = query
         self._refresh_library(query)
 
     def _on_activate(self, path: str):
@@ -148,6 +237,38 @@ class AppWindow(QMainWindow):
                 track["album"],
                 track["duration"],
             )
+
+    def _clear_current_track(self):
+        self._current_path = None
+        self._current_lyrics = []
+        self._current_lyrics_index = -1
+        self._controls.set_is_playing(False)
+        self._lyrics.set_lines([])
+        self._lyrics.set_cover(None)
+        self._lyrics.set_track_info("", "", "", None)
+
+    def _on_remove_selected(self, paths: list[str]):
+        unique_paths = list(dict.fromkeys(paths))
+        if not unique_paths:
+            return
+        confirm = QMessageBox.question(
+            self,
+            "从库中移除",
+            f"将从库中移除 {len(unique_paths)} 首歌曲记录。磁盘文件不会被删除。",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if confirm != QMessageBox.Yes:
+            return
+        deleted = library.remove_tracks(self._conn, unique_paths)
+        for path in unique_paths:
+            self._cover_cache.pop(path, None)
+        if self._current_path in unique_paths:
+            self._on_stop()
+            self._clear_current_track()
+        self._refresh_library(self._last_query)
+        if deleted > 0:
+            QMessageBox.information(self, "移除完成", f"已移除 {deleted} 首歌曲")
 
     def _on_toggle_playback(self):
         if self._player.is_playing():

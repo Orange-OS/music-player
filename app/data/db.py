@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from typing import Iterable
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
@@ -80,3 +81,15 @@ def get_track_by_path(conn: sqlite3.Connection, path: str) -> sqlite3.Row | None
         """,
         (path,),
     ).fetchone()
+
+
+def delete_tracks_by_paths(conn: sqlite3.Connection, paths: Iterable[str]) -> int:
+    path_list = list(paths)
+    if not path_list:
+        return 0
+    placeholders = ", ".join(["?"] * len(path_list))
+    cursor = conn.execute(
+        f"DELETE FROM tracks WHERE path IN ({placeholders})",
+        path_list,
+    )
+    return cursor.rowcount

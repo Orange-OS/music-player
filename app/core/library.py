@@ -32,3 +32,9 @@ def search(conn, query: str) -> list:
 
 def get_track_by_path(conn, path: str):
     return db.get_track_by_path(conn, path)
+
+
+def remove_tracks(conn, paths: Iterable[str]) -> int:
+    deleted = db.delete_tracks_by_paths(conn, paths)
+    conn.commit()
+    return deleted

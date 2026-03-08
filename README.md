@@ -29,8 +29,3 @@ pyinstaller --noconfirm --onedir --noconsole --name "MusicPlayer" `
 顺序
 随机
 循环
-调节音量
-歌词
-暂停和播放一个按钮
-空格暂停
-键盘左右键控制切歌
