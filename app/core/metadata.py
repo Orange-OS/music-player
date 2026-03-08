@@ -5,16 +5,19 @@ from mutagen.flac import Picture
 
 
 def read_metadata(path: Path) -> dict:
-    audio = MutagenFile(path, easy=True)
+    try:
+        audio = MutagenFile(path, easy=True)
+    except Exception:
+        audio = None
     title = None
     artist = None
     album = None
     duration = None
 
     if audio is not None:
-        title = _first(audio.get("title"))
-        artist = _first(audio.get("artist"))
-        album = _first(audio.get("album"))
+        title = _fix_text(_first(audio.get("title")))
+        artist = _fix_text(_first(audio.get("artist")))
+        album = _fix_text(_first(audio.get("album")))
         if audio.info is not None:
             duration = int(audio.info.length)
 
@@ -38,6 +41,30 @@ def _first(value):
         return None
     if isinstance(value, list):
         return value[0]
+    return value
+
+
+def _fix_text(value: str | None) -> str | None:
+    if not value:
+        return value
+    if "\x00" in value or "\x02" in value:
+        return value.replace("\x00", "").replace("\x02", "")
+
+    try:
+        raw = value.encode("latin-1")
+    except Exception:
+        return value
+
+    for encoding in ("utf-16", "utf-8", "gb18030"):
+        try:
+            decoded = raw.decode(encoding)
+        except Exception:
+            continue
+        if "\x00" in decoded:
+            decoded = decoded.replace("\x00", "")
+        if decoded.strip():
+            return decoded
+
     return value
 
 
