@@ -49,8 +49,7 @@ class AppWindow(QMainWindow):
 
         self._controls = PlaybackControls(
             central,
-            on_play=self._on_play,
-            on_pause=self._on_pause,
+            on_toggle=self._on_toggle_playback,
             on_stop=self._on_stop,
             on_seek=self._on_seek,
         )
@@ -98,18 +97,22 @@ class AppWindow(QMainWindow):
         self._current_path = path
         self._player.load(path)
         self._player.play()
+        self._controls.set_is_playing(True)
         self._current_lyrics = lyrics.load_lrc_for_track(path)
         if not self._current_lyrics:
             self._lyrics.set_line("")
 
-    def _on_play(self):
-        self._player.play()
-
-    def _on_pause(self):
-        self._player.pause()
+    def _on_toggle_playback(self):
+        if self._player.is_playing():
+            self._player.pause()
+            self._controls.set_is_playing(False)
+        else:
+            self._player.play()
+            self._controls.set_is_playing(True)
 
     def _on_stop(self):
         self._player.stop()
+        self._controls.set_is_playing(False)
 
     def _on_seek(self, fraction: float):
         self._player.set_position(fraction)
@@ -122,6 +125,7 @@ class AppWindow(QMainWindow):
             if total > 0:
                 fraction = current / total
             self._controls.set_position(fraction, current, total)
+            self._controls.set_is_playing(self._player.is_playing())
 
             if self._current_lyrics:
                 line = lyrics.get_line_at_time(self._current_lyrics, current)

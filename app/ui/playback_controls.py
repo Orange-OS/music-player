@@ -3,22 +3,19 @@ from PySide6.QtWidgets import QWidget, QPushButton, QSlider, QLabel, QHBoxLayout
 
 
 class PlaybackControls(QWidget):
-    def __init__(self, parent, on_play, on_pause, on_stop, on_seek):
+    def __init__(self, parent, on_toggle, on_stop, on_seek):
         super().__init__(parent)
-        self._on_play = on_play
-        self._on_pause = on_pause
+        self._on_toggle = on_toggle
         self._on_stop = on_stop
         self._on_seek = on_seek
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        play_button = QPushButton("播放", self)
-        pause_button = QPushButton("暂停", self)
+        self._toggle_button = QPushButton("播放", self)
         stop_button = QPushButton("停止", self)
 
-        play_button.clicked.connect(self._on_play)
-        pause_button.clicked.connect(self._on_pause)
+        self._toggle_button.clicked.connect(self._on_toggle)
         stop_button.clicked.connect(self._on_stop)
 
         self._slider = QSlider(Qt.Horizontal, self)
@@ -30,8 +27,7 @@ class PlaybackControls(QWidget):
         self._time = QLabel("00:00 / 00:00", self)
         self._time.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        layout.addWidget(play_button)
-        layout.addWidget(pause_button)
+        layout.addWidget(self._toggle_button)
         layout.addWidget(stop_button)
         layout.addWidget(self._slider, 1)
         layout.addWidget(self._time)
@@ -39,6 +35,9 @@ class PlaybackControls(QWidget):
     def _seek(self, value: int):
         fraction = float(value) / 100.0
         self._on_seek(fraction)
+
+    def set_is_playing(self, is_playing: bool) -> None:
+        self._toggle_button.setText("暂停" if is_playing else "播放")
 
     def set_position(self, fraction: float, current: float, total: float) -> None:
         value = int(fraction * 100)
