@@ -23,6 +23,30 @@ class LibraryView(QWidget):
 
         layout.addWidget(self._tree)
 
+    def activate_relative(self, offset: int):
+        count = self._tree.topLevelItemCount()
+        if count == 0:
+            return
+        current = self._tree.currentItem()
+        if current is None:
+            index = 0
+        else:
+            index = self._tree.indexOfTopLevelItem(current)
+            if index < 0:
+                index = 0
+        new_index = max(0, min(count - 1, index + offset))
+        item = self._tree.topLevelItem(new_index)
+        if item is None:
+            return
+        self._tree.setCurrentItem(item)
+        self._activate(item, 0)
+
+    def activate_next(self):
+        self.activate_relative(1)
+
+    def activate_previous(self):
+        self.activate_relative(-1)
+
     def set_tracks(self, rows):
         self._tree.clear()
         for row in rows:

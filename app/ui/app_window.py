@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -67,6 +67,21 @@ class AppWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
+        toggle_action = QAction(self)
+        toggle_action.setShortcut(QKeySequence(Qt.Key_Space))
+        toggle_action.triggered.connect(self._on_toggle_playback)
+        self.addAction(toggle_action)
+
+        next_action = QAction(self)
+        next_action.setShortcut(QKeySequence(Qt.Key_Right))
+        next_action.triggered.connect(self._on_next_track)
+        self.addAction(next_action)
+
+        prev_action = QAction(self)
+        prev_action.setShortcut(QKeySequence(Qt.Key_Left))
+        prev_action.triggered.connect(self._on_previous_track)
+        self.addAction(prev_action)
+
         self._refresh_library()
 
         self._timer = QTimer(self)
@@ -124,6 +139,12 @@ class AppWindow(QMainWindow):
 
     def _on_volume(self, value: int):
         self._player.set_volume(value)
+
+    def _on_next_track(self):
+        self._library.activate_next()
+
+    def _on_previous_track(self):
+        self._library.activate_previous()
 
     def _tick(self):
         if self._current_path:
