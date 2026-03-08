@@ -52,6 +52,7 @@ class AppWindow(QMainWindow):
             on_toggle=self._on_toggle_playback,
             on_stop=self._on_stop,
             on_seek=self._on_seek,
+            on_volume=self._on_volume,
         )
         layout.addWidget(self._controls)
 
@@ -72,6 +73,10 @@ class AppWindow(QMainWindow):
         self._timer.setInterval(300)
         self._timer.timeout.connect(self._tick)
         self._timer.start()
+
+        default_volume = 100
+        self._controls.set_volume(default_volume)
+        self._player.set_volume(default_volume)
 
     def _scan_folder(self):
         path = QFileDialog.getExistingDirectory(self, "选择文件夹")
@@ -116,6 +121,9 @@ class AppWindow(QMainWindow):
 
     def _on_seek(self, fraction: float):
         self._player.set_position(fraction)
+
+    def _on_volume(self, value: int):
+        self._player.set_volume(value)
 
     def _tick(self):
         if self._current_path:

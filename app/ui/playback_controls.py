@@ -2,12 +2,23 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QSlider, QLabel, QHBoxLayout
 
 
+class JumpSlider(QSlider):
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            pos = event.position().x() if hasattr(event, "position") else event.x()
+            value = QSlider.minimum(self) + ((QSlider.maximum(self) - QSlider.minimum(self)) * pos) / max(1, self.width())
+            self.setValue(int(value))
+            event.accept()
+        super().mousePressEvent(event)
+
+
 class PlaybackControls(QWidget):
-    def __init__(self, parent, on_toggle, on_stop, on_seek):
+    def __init__(self, parent, on_toggle, on_stop, on_seek, on_volume):
         super().__init__(parent)
         self._on_toggle = on_toggle
         self._on_stop = on_stop
         self._on_seek = on_seek
+        self._on_volume = on_volume
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -18,7 +29,13 @@ class PlaybackControls(QWidget):
         self._toggle_button.clicked.connect(self._on_toggle)
         stop_button.clicked.connect(self._on_stop)
 
-        self._slider = QSlider(Qt.Horizontal, self)
+        self._volume = JumpSlider(Qt.Horizontal, self)
+        self._volume.setRange(0, 100)
+        self._volume.setSingleStep(1)
+        self._volume.setPageStep(5)
+        self._volume.valueChanged.connect(self._on_volume)
+
+        self._slider = JumpSlider(Qt.Horizontal, self)
         self._slider.setRange(0, 100)
         self._slider.setSingleStep(1)
         self._slider.setPageStep(5)
@@ -29,6 +46,7 @@ class PlaybackControls(QWidget):
 
         layout.addWidget(self._toggle_button)
         layout.addWidget(stop_button)
+        layout.addWidget(self._volume)
         layout.addWidget(self._slider, 1)
         layout.addWidget(self._time)
 
@@ -45,6 +63,12 @@ class PlaybackControls(QWidget):
         self._slider.setValue(value)
         self._slider.blockSignals(was_blocked)
         self._time.setText(f"{_fmt(current)} / {_fmt(total)}")
+
+    def set_volume(self, value: int) -> None:
+        volume = max(0, min(100, int(value)))
+        was_blocked = self._volume.blockSignals(True)
+        self._volume.setValue(volume)
+        self._volume.blockSignals(was_blocked)
 
 
 def _fmt(seconds: float) -> str:

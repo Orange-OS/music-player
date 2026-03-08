@@ -38,6 +38,14 @@ class Player:
         ms = self._player.get_length()
         return max(0.0, ms / 1000.0) if ms is not None else 0.0
 
+    def set_volume(self, value: int) -> None:
+        volume = max(0, min(100, int(value)))
+        self._player.audio_set_volume(volume)
+
+    def get_volume(self) -> int:
+        volume = self._player.audio_get_volume()
+        return int(volume) if volume is not None else 0
+
     @property
     def current_path(self):
         return self._current_path
