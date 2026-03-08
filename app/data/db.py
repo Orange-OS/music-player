@@ -70,3 +70,13 @@ def list_tracks(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         ORDER BY artist, album, title
         """
     ).fetchall()
+
+
+def get_track_by_path(conn: sqlite3.Connection, path: str) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT * FROM tracks
+        WHERE path = ?
+        """,
+        (path,),
+    ).fetchone()

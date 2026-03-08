@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QIcon, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -15,7 +15,7 @@ from .search_bar import SearchBar
 from .library_view import LibraryView
 from .playback_controls import PlaybackControls
 from .lyrics_view import LyricsView
-from ..core import library, search, lyrics
+from ..core import library, search, lyrics, metadata
 
 
 class AppWindow(QMainWindow):
@@ -28,7 +28,9 @@ class AppWindow(QMainWindow):
         self._conn = conn
         self._player = player
         self._current_lyrics = []
+        self._current_lyrics_index = -1
         self._current_path = None
+        self._cover_cache = {}
 
         central = QWidget(self)
         layout = QVBoxLayout(central)
@@ -119,8 +121,33 @@ class AppWindow(QMainWindow):
         self._player.play()
         self._controls.set_is_playing(True)
         self._current_lyrics = lyrics.load_lrc_for_track(path)
-        if not self._current_lyrics:
-            self._lyrics.set_line("")
+        self._current_lyrics_index = -1
+        self._lyrics.set_lines([text for _ts, text in self._current_lyrics])
+
+        cover_pixmap = None
+        cached = self._cover_cache.get(path)
+        if cached is not None:
+            cover_pixmap = cached
+        else:
+            cover_bytes = metadata.read_embedded_cover(Path(path))
+            if cover_bytes:
+                pixmap = QPixmap()
+                if pixmap.loadFromData(cover_bytes):
+                    cover_pixmap = pixmap
+            self._cover_cache[path] = cover_pixmap
+
+        self._lyrics.set_cover(cover_pixmap)
+
+        track = library.get_track_by_path(self._conn, path)
+        if track is None:
+            self._lyrics.set_track_info("", "", "", None)
+        else:
+            self._lyrics.set_track_info(
+                track["title"],
+                track["artist"],
+                track["album"],
+                track["duration"],
+            )
 
     def _on_toggle_playback(self):
         if self._player.is_playing():
@@ -157,5 +184,9 @@ class AppWindow(QMainWindow):
             self._controls.set_is_playing(self._player.is_playing())
 
             if self._current_lyrics:
-                line = lyrics.get_line_at_time(self._current_lyrics, current)
-                self._lyrics.set_line(line)
+                index = lyrics.get_index_at_time(self._current_lyrics, current)
+                if index != self._current_lyrics_index:
+                    self._current_lyrics_index = index
+                    self._lyrics.set_current_index(index)
+            else:
+                self._lyrics.set_current_index(-1)

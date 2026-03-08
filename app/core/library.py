@@ -28,3 +28,7 @@ def search(conn, query: str) -> list:
     if not query.strip():
         return list_all(conn)
     return db.search_tracks(conn, query)
+
+
+def get_track_by_path(conn, path: str):
+    return db.get_track_by_path(conn, path)

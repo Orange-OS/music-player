@@ -25,11 +25,11 @@ def load_lrc_for_track(track_path: str) -> list[tuple[float, str]]:
     return lines
 
 
-def get_line_at_time(lines: list[tuple[float, str]], t: float) -> str:
-    current = ""
-    for ts, text in lines:
+def get_index_at_time(lines: list[tuple[float, str]], t: float) -> int:
+    index = -1
+    for i, (ts, _text) in enumerate(lines):
         if t >= ts:
-            current = text
+            index = i
         else:
             break
-    return current
+    return index
