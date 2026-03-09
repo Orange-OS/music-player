@@ -25,7 +25,3 @@ pyinstaller --noconfirm --onedir --noconsole --name "MusicPlayer" `
   --add-binary "third_party/vlc/libvlccore.dll;." `
   run.py
 ```
-
-顺序
-随机
-循环

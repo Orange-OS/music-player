@@ -68,6 +68,8 @@ class AppWindow(QMainWindow):
         self._cover_cache = {}
         self._last_query = ""
         self._cover_debug_shown = False
+        self._shuffle_enabled = False
+        self._repeat_mode = "list"
 
         central = QWidget(self)
         central.setStyleSheet("background: transparent;")
@@ -146,6 +148,8 @@ class AppWindow(QMainWindow):
             on_stop=self._on_stop,
             on_seek=self._on_seek,
             on_volume=self._on_volume,
+            on_toggle_shuffle=self._on_toggle_shuffle,
+            on_toggle_repeat=self._on_toggle_repeat,
         )
         self._controls.setStyleSheet(
             "background: #f7f7f7;"
@@ -182,6 +186,8 @@ class AppWindow(QMainWindow):
         default_volume = 100
         self._controls.set_volume(default_volume)
         self._player.set_volume(default_volume)
+        self._controls.set_shuffle_enabled(self._shuffle_enabled)
+        self._controls.set_repeat_mode(self._repeat_mode)
 
     def _scan_folder(self):
         path = QFileDialog.getExistingDirectory(self, "选择文件夹")
@@ -289,10 +295,18 @@ class AppWindow(QMainWindow):
         self._player.set_volume(value)
 
     def _on_next_track(self):
-        self._library.activate_next()
+        self._library.activate_next(mode=self._repeat_mode, shuffle_enabled=self._shuffle_enabled)
 
     def _on_previous_track(self):
-        self._library.activate_previous()
+        self._library.activate_previous(mode=self._repeat_mode, shuffle_enabled=self._shuffle_enabled)
+
+    def _on_toggle_shuffle(self):
+        self._shuffle_enabled = not self._shuffle_enabled
+        self._controls.set_shuffle_enabled(self._shuffle_enabled)
+
+    def _on_toggle_repeat(self):
+        self._repeat_mode = "single" if self._repeat_mode == "list" else "list"
+        self._controls.set_repeat_mode(self._repeat_mode)
 
     def _tick(self):
         if self._current_path:
@@ -303,6 +317,10 @@ class AppWindow(QMainWindow):
                 fraction = current / total
             self._controls.set_position(fraction, current, total)
             self._controls.set_is_playing(self._player.is_playing())
+
+            if total > 0 and current >= (total - 0.2) and not self._player.is_playing():
+                self._on_next_track()
+                return
 
             if self._current_lyrics:
                 index = lyrics.get_index_at_time(self._current_lyrics, current)

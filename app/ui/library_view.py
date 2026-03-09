@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QRandomGenerator
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QWidget,
@@ -93,29 +93,55 @@ class LibraryView(QWidget):
 
         layout.addWidget(self._tree)
 
-    def activate_relative(self, offset: int):
-        count = self._tree.topLevelItemCount()
-        if count == 0:
-            return
+    def _visible_items(self) -> list[QTreeWidgetItem]:
+        items = []
+        for index in range(self._tree.topLevelItemCount()):
+            item = self._tree.topLevelItem(index)
+            if item is not None:
+                items.append(item)
+        return items
+
+    def _current_index(self, items: list[QTreeWidgetItem]) -> int:
         current = self._tree.currentItem()
         if current is None:
-            index = 0
-        else:
-            index = self._tree.indexOfTopLevelItem(current)
-            if index < 0:
-                index = 0
-        new_index = max(0, min(count - 1, index + offset))
-        item = self._tree.topLevelItem(new_index)
-        if item is None:
+            return -1
+        try:
+            return items.index(current)
+        except ValueError:
+            return -1
+
+    def activate_next(self, mode: str = "list", shuffle_enabled: bool = False):
+        self._activate_with_mode(1, mode, shuffle_enabled)
+
+    def activate_previous(self, mode: str = "list", shuffle_enabled: bool = False):
+        self._activate_with_mode(-1, mode, shuffle_enabled)
+
+    def _activate_with_mode(self, offset: int, mode: str, shuffle_enabled: bool) -> None:
+        items = self._visible_items()
+        count = len(items)
+        if count == 0:
             return
+
+        current_index = self._current_index(items)
+        if shuffle_enabled:
+            if count == 1:
+                new_index = 0
+            else:
+                start = current_index if current_index >= 0 else 0
+                new_index = start
+                while new_index == start:
+                    new_index = int(QRandomGenerator.global_().bounded(count))
+        elif mode == "single":
+            new_index = current_index if current_index >= 0 else 0
+        else:
+            if current_index < 0:
+                new_index = 0
+            else:
+                new_index = (current_index + offset) % count
+
+        item = items[new_index]
         self._tree.setCurrentItem(item)
         self._activate(item, 0)
-
-    def activate_next(self):
-        self.activate_relative(1)
-
-    def activate_previous(self):
-        self.activate_relative(-1)
 
     def set_tracks(self, rows):
         self._tree.clear()

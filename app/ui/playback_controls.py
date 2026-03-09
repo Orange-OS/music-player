@@ -16,12 +16,14 @@ class JumpSlider(QSlider):
 
 
 class PlaybackControls(QWidget):
-    def __init__(self, parent, on_toggle, on_stop, on_seek, on_volume):
+    def __init__(self, parent, on_toggle, on_stop, on_seek, on_volume, on_toggle_shuffle, on_toggle_repeat):
         super().__init__(parent)
         self._on_toggle = on_toggle
         self._on_stop = on_stop
         self._on_seek = on_seek
         self._on_volume = on_volume
+        self._on_toggle_shuffle = on_toggle_shuffle
+        self._on_toggle_repeat = on_toggle_repeat
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -43,6 +45,35 @@ class PlaybackControls(QWidget):
             "  background: #f1f1f1;"
             "}"
         )
+
+        self._shuffle_button = QPushButton("随机", self)
+        self._shuffle_button.setFlat(True)
+        self._shuffle_button.setStyleSheet(
+            "QPushButton {"
+            "  border: 1px solid rgba(0, 0, 0, 0.12);"
+            "  border-radius: 6px;"
+            "  padding: 4px 10px;"
+            "  background: #f7f7f7;"
+            "}"
+            "QPushButton:hover {"
+            "  background: #f1f1f1;"
+            "}"
+        )
+
+        self._repeat_button = QPushButton("列表循环", self)
+        self._repeat_button.setFlat(True)
+        self._repeat_button.setStyleSheet(
+            "QPushButton {"
+            "  border: 1px solid rgba(0, 0, 0, 0.12);"
+            "  border-radius: 6px;"
+            "  padding: 4px 10px;"
+            "  background: #f7f7f7;"
+            "}"
+            "QPushButton:hover {"
+            "  background: #f1f1f1;"
+            "}"
+        )
+
         stop_button = QPushButton("停止", self)
         stop_button.setFlat(True)
         stop_button.setStyleSheet(
@@ -58,6 +89,8 @@ class PlaybackControls(QWidget):
         )
 
         self._toggle_button.clicked.connect(self._on_toggle)
+        self._shuffle_button.clicked.connect(self._on_toggle_shuffle)
+        self._repeat_button.clicked.connect(self._on_toggle_repeat)
         stop_button.clicked.connect(self._on_stop)
 
         self._volume = JumpSlider(Qt.Horizontal, self)
@@ -118,6 +151,8 @@ class PlaybackControls(QWidget):
         self._time.setStyleSheet("color: rgba(0, 0, 0, 0.7);")
 
         layout.addWidget(self._toggle_button)
+        layout.addWidget(self._shuffle_button)
+        layout.addWidget(self._repeat_button)
         layout.addWidget(stop_button)
         layout.addWidget(self._volume)
         layout.addWidget(self._slider, 1)
@@ -130,6 +165,15 @@ class PlaybackControls(QWidget):
     def set_is_playing(self, is_playing: bool) -> None:
         self._toggle_button.setIcon(self._icon_for_state(is_playing))
         self._toggle_button.setToolTip("暂停" if is_playing else "播放")
+
+    def set_shuffle_enabled(self, enabled: bool) -> None:
+        self._shuffle_button.setText("随机" if enabled else "顺序")
+        self._shuffle_button.setToolTip("随机播放" if enabled else "顺序播放")
+
+    def set_repeat_mode(self, mode: str) -> None:
+        is_single = mode == "single"
+        self._repeat_button.setText("单曲循环" if is_single else "列表循环")
+        self._repeat_button.setToolTip("单曲循环" if is_single else "列表循环")
 
     def _icon_for_state(self, is_playing: bool) -> QIcon:
         base = Path(__file__).resolve().parent.parent / ".." / "assets" / "icons"
