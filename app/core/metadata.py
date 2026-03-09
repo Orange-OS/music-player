@@ -15,9 +15,12 @@ def read_metadata(path: Path) -> dict:
     duration = None
 
     if audio is not None:
-        title = _fix_text(_first(audio.get("title")))
-        artist = _fix_text(_first(audio.get("artist")))
-        album = _fix_text(_first(audio.get("album")))
+        raw_title = _first(audio.get("title"))
+        raw_artist = _first(audio.get("artist"))
+        raw_album = _first(audio.get("album"))
+        title = _fix_text(raw_title)
+        artist = _fix_text(raw_artist)
+        album = _fix_text(raw_album)
         if audio.info is not None:
             duration = int(audio.info.length)
 
@@ -49,13 +52,15 @@ def _fix_text(value: str | None) -> str | None:
         return value
     if "\x00" in value or "\x02" in value:
         return value.replace("\x00", "").replace("\x02", "")
+    if value.isascii():
+        return value
 
     try:
         raw = value.encode("latin-1")
     except Exception:
         return value
 
-    for encoding in ("utf-16", "utf-8", "gb18030"):
+    for encoding in ("utf-16", "utf-8", "gb18030", "gbk", "big5", "shift_jis"):
         try:
             decoded = raw.decode(encoding)
         except Exception:
